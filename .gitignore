@@ -1,0 +1,12 @@
+# arquivos que serão ignorados ao subir no github
+
+# ambientes virtuais
+venv/
+env/
+
+# caches do python
+__pycache__/
+*.pyc
+
+# arquivos de ambiente
+.env
