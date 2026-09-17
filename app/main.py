@@ -17,7 +17,7 @@ app = FastAPI(
     description="API didática para gerenciamento de livros.",
 )
 
-#  rota para adicionar livros 
+#  rota para adicionar livros - post
 @app.post("/livros", response_model=LivroResposta, status_code=201, tags=["Livros"])
 def criar_livro(dados_livro: LivroCriacao, sessao_banco: Session = Depends(obter_sessao_banco)):
     novo_livro = Livro(
@@ -33,7 +33,7 @@ def criar_livro(dados_livro: LivroCriacao, sessao_banco: Session = Depends(obter
 
     return novo_livro
 
-# rota para listar livros 
+# rota para listar livros - get
 @app.get("/livros", response_model=list[LivroResposta], tags=["Livros"])
 def listar_livros(sessao_banco: Session = Depends(obter_sessao_banco)):
     consulta = select(Livro)
@@ -42,7 +42,7 @@ def listar_livros(sessao_banco: Session = Depends(obter_sessao_banco)):
 
     return livros
 
-#  consultando um livro pelo id
+#  consultando um livro pelo id - get
 @app.get("/livros/{id_livro}", response_model=LivroResposta, tags=["Livros"])
 def obter_livro(id_livro: int, sessao_banco: Session = Depends(obter_sessao_banco)):
     consulta = select(Livro).where(Livro.id == id_livro)
@@ -53,3 +53,47 @@ def obter_livro(id_livro: int, sessao_banco: Session = Depends(obter_sessao_banc
         raise HTTPException(status_code=404, detail="Livro não encontrado")
 
     return livro
+
+# rota para atualizar um livro - put
+
+@app.put("/livros/{id_livro}", response_model=LivroResposta, tags=["Livros"])
+def atualizar_livro(
+    id_livro: int,
+    dados_livro: LivroCriacao,
+    sessao_banco: Session = Depends(obter_sessao_banco),
+):
+    consulta = select(Livro).where(Livro.id == id_livro)
+    resultado = sessao_banco.execute(consulta)
+    livro = resultado.scalar_one_or_none()
+
+    if livro is None:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+
+    livro.titulo = dados_livro.titulo
+    livro.autor = dados_livro.autor
+    livro.ano_publicacao = dados_livro.ano_publicacao
+    livro.disponivel = dados_livro.disponivel
+
+    sessao_banco.commit()
+    sessao_banco.refresh(livro)
+
+    return livro
+
+# rota para deletar um livro - delete 
+
+@app.delete("/livros/{id_livro}", tags=["Livros"])
+def excluir_livro(
+    id_livro: int,
+    sessao_banco: Session = Depends(obter_sessao_banco),
+):
+    consulta = select(Livro).where(Livro.id == id_livro)
+    resultado = sessao_banco.execute(consulta)
+    livro = resultado.scalar_one_or_none()
+
+    if livro is None:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+
+    sessao_banco.delete(livro)
+    sessao_banco.commit()
+
+    return {"mensagem": "Livro excluído com sucesso"}
